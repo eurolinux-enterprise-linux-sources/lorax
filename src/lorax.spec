@@ -1,7 +1,7 @@
 %define debug_package %{nil}
 
 Name:           lorax
-Version:        19.6.66
+Version:        19.6.78
 Release:        1%{?dist}
 Summary:        Tool for creating the anaconda install images
 
@@ -99,6 +99,90 @@ make DESTDIR=$RPM_BUILD_ROOT mandir=%{_mandir} install
 %{_mandir}/man1/*.1*
 
 %changelog
+* Thu Sep 08 2016 Brian C. Lane <bcl@redhat.com> 19.6.78-1
+- Don't log dracut initrd regeneration messages into /tmp/syslog (rvykydal)
+  Related: rhbz#1369439
+- Use imjournal for rsyslogd instead of sharing /dev/log with journal (rvykydal)
+  Resolves: rhbz#1369439
+
+* Mon Aug 01 2016 Brian C. Lane <bcl@redhat.com> 19.6.77-1
+- livemedia-creator: Install genericdvd.prm (bcl)
+  Related: rhbz#1269213
+- livemedia-creator: Use imgutils.copytree for results (bcl)
+  Resolves: rhbz#1362157
+
+* Thu Jul 28 2016 Brian C. Lane <bcl@redhat.com> 19.6.76-1
+- livemedia-creator: Fix logging (bcl)
+  Resolves: rhbz#1361031
+
+* Tue Jul 26 2016 Brian C. Lane <bcl@redhat.com> 19.6.75-1
+- livemedia-creator: Use hd:LABEL for stage2 iso (bcl)
+  Resolves: rhbz#1355882
+
+* Mon Jul 18 2016 Brian C. Lane <bcl@redhat.com> 19.6.74-1
+- Keep fb_sys_fops module needed for ast support (bcl)
+  Resolves: rhbz#1272658
+
+* Fri Jun 24 2016 Brian C. Lane <bcl@redhat.com> 19.6.73-1
+- Add back libraries needed by spice-vdagent (dshea)
+  Resolves: rhbz#1347737
+
+* Wed Jun 22 2016 Brian C. Lane <bcl@redhat.com> 19.6.72-1
+- Make sure cmdline config file exists (bcl)
+  Resolves: rhbz#1348302
+- Keep all of the kernel drivers/target/ modules (bcl)
+  Resolves: rhbz#1348381
+- Keep the pci utilities for use in kickstarts (bcl)
+  Resolves: rhbz#1344926
+
+* Thu May 05 2016 Brian C. Lane <bcl@redhat.com> 19.6.71-1
+- Create an empty selinux config file (bcl)
+  Resolves: rhbz#1332147
+
+* Thu Apr 21 2016 Brian C. Lane <bcl@redhat.com> 19.6.70-1
+- Use eurlatgr as the console font (bcl)
+  Resolves: rhbz#1265354
+
+* Fri Apr 15 2016 Brian C. Lane <bcl@redhat.com> 19.6.69-1
+- Remove Metacity override and theme (bcl)
+  Resolves: rhbz#1324890
+- Copying same file shouldn't crash (bcl)
+  Resolves: rhbz#1269213
+
+* Wed Mar 30 2016 Brian C. Lane <bcl@redhat.com> 19.6.68-1
+- livemedia-creator: Use correct suffix on default image names (bcl)
+  Resolves: rhbz#1318958
+- Fix livemedia-creator manpage (bcl)
+  Resolves: rhbz#1318952
+
+* Tue Mar 01 2016 Brian C. Lane <bcl@redhat.com> 19.6.67-1
+- templates: Reinstate gpgme-pthread.so for ostree (walters)
+- Resolves: rhbz#1311793
+- Add rng-tools and start rngd.service by default (bcl)
+- Resolves: rhbz#1258516
+- Add (bcl)
+- Resolves: rhbz#1269891
+- Include grub2-efi-modules on the boot.iso (bcl)
+- Resolves: rhbz#1277227
+- Keep modules needed for ast video driver support (bcl)
+- Resolves: rhbz#1272658
+- configure NetworkManager to loglevel=DEBUG (rvykydal)
+- Resolves: rhbz#1274647
+- Update docs for product.img (bcl)
+- Resolves: rhbz#1272361
+- paste is needed by os-prober (bcl)
+- Resolves: rhbz#1275105
+- Keep libthread so that gdb will work correctly (bcl)
+- Resolves: rhbz#1269055
+- Add --installpkgs argument (walters)
+- Resolves: rhbz#1272222
+- livemedia-creator: Clean up resultdir handling (bcl)
+- Resolves: rhbz#1290552
+- https is a sane package source URL scheme (walters)
+- Resolves: rhbz#1292680
+- Add product.img support for s390 templates (dan)
+- Resolves: rhbz#1272359
+
 * Wed Sep 02 2015 Brian C. Lane <bcl@redhat.com> 19.6.66-1
 - livemedia-creator: Remove random-seed from images (bcl)
   Resolves: rhbz#1258986
