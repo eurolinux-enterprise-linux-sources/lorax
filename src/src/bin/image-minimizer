@@ -19,7 +19,6 @@
 import glob
 import optparse
 import os
-import shutil
 import sys
 import rpm
 
@@ -33,8 +32,8 @@ class ImageMinimizer:
     drops_rpm = set()
     ts = None
 
-    def __init__(self, filename, root, dryrun, verbose):
-        self.filename = filename
+    def __init__(self, _filename, root, dryrun, verbose):
+        self.filename = _filename
         self.prefix = root
         self.dryrun = dryrun
         self.verbose = verbose
@@ -46,8 +45,8 @@ class ImageMinimizer:
     def add_directory(self, files, dirname):
         self.visited.add(dirname)
         for root, dirs, items in os.walk(dirname):
-            for dir in dirs:
-                self.visited.add(os.path.join(root, dir))
+            for _dir in dirs:
+                self.visited.add(os.path.join(root, _dir))
             for name in items:
                 files.add(os.path.join(root, name))
 
@@ -124,14 +123,14 @@ class ImageMinimizer:
                     os.remove(tag)
 
         #remove all empty directory. Every 8k counts!
-        for dir in sorted(self.visited, reverse=True):
-            if len(os.listdir(dir)) == 0:
+        for _dir in sorted(self.visited, reverse=True):
+            if len(os.listdir(_dir)) == 0:
                 if self.dryrun:
-                    print 'rm -rf ' + dir
+                    print 'rm -rf ' + _dir
                 else:
                     if self.verbose:
-                        print 'rm -rf ' + dir
-                    os.rmdir(dir)
+                        print 'rm -rf ' + _dir
+                    os.rmdir(_dir)
 
     def remove_rpm(self):
 
@@ -174,12 +173,12 @@ def parse_options():
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
         help="Display every action as it is performed.")
 
-    (options, args) = parser.parse_args()
+    (_options, _args) = parser.parse_args()
     if len(args) == 0:
         parser.print_help()
         sys.exit(1)
 
-    return (options, args)
+    return (_options, _args)
 
 
 if __name__ == "__main__":
@@ -192,7 +191,7 @@ if __name__ == "__main__":
     except SystemExit, e:
         sys.exit(e.code)
     except KeyboardInterrupt, e:
-        print >> sys.stderr, _("Aborted at user request")
+        print >> sys.stderr, "Aborted at user request"
     except Exception, e:
         print e
         sys.exit(1)

@@ -1,2 +1,10 @@
 *.pyc
 src/pylorax/version.py*
+src/composer/version.py*
+*.swp
+.pylint.d/
+_build/
+tests/pylint/.pylint.d/
+__pycache__/
+.coverage
+pylint-log

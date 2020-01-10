@@ -67,7 +67,7 @@ removepkg tigervnc-license ttmkfdir xml-common xorg-x11-font-utils
 removepkg xorg-x11-server-common yum-utils
 
 ## other removals
-remove /boot /home /media /opt /srv /tmp/*
+remove /home /media /opt /srv /tmp/*
 remove /usr/etc /usr/games /usr/local /usr/tmp
 remove /usr/share/doc /usr/share/info /usr/share/man /usr/share/gnome
 remove /usr/share/mime/application /usr/share/mime/audio /usr/share/mime/image
@@ -86,18 +86,19 @@ removekmod sound drivers/media drivers/hwmon \
            net/atm net/bluetooth net/sched net/sctp \
            net/rds net/l2tp net/decnet net/netfilter net/ipv4 net/ipv6 \
            drivers/watchdog drivers/rtc drivers/input/joystick \
-           drivers/bluetooth drivers/hid drivers/edac \
-           drivers/usb/serial drivers/usb/host drivers/usb/misc \
-           fs/ocfs2 fs/ceph fs/nfsd fs/ubifs fs/nilfs2 \
-           arch/x86/kvm
+           drivers/bluetooth drivers/edac drivers/usb/serial \
+           drivers/usb/host drivers/usb/misc fs/ocfs2 fs/ceph fs/nfsd \
+           fs/ubifs fs/nilfs2 arch/x86/kvm
 ## Need to keep virtio_console.ko and ipmi stuff in drivers/char
 ## Also keep virtio-rng so that the installer can get sufficient randomness for
 ## LUKS setup.
 removekmod drivers/char --allbut virtio_console hw_random \
-                                  virtio-rng ipmi
+                                  virtio-rng ipmi hmcdrv
 removekmod drivers/staging --allbut zram
 removekmod drivers/video --allbut hyperv_fb syscopyarea sysfillrect sysimgblt fb_sys_fops
 remove lib/modules/*/{build,source,*.map}
+## Need to keep hid-multitouch and i2c-hid in drivers/hid, rhbz#1526323
+removekmod drivers/hid --allbut hid-multitouch i2c-hid
 ## NOTE: depmod gets re-run after cleanup finishes
 
 ## remove unused themes, theme engines, icons, etc.
@@ -346,6 +347,11 @@ removefrom subscription-manager --allbut /etc/rhsm/* /usr/share/rhsm/* /var/log/
 ## cleanup_python_files()
 runcmd find ${root} -name "*.pyo" -type f -delete
 runcmd find ${root} -name "*.pyc" -type f -exec ln -sf /dev/null {} \;
+
+## cleanup /boot/ leaving vmlinuz, and .*hmac files
+runcmd chroot ${root} find /boot \! -name "vmlinuz*" \
+                            -and \! -name ".vmlinuz*" \
+                            -and \! -name boot -delete
 
 ## remove any broken links in /etc or /usr
 ## (broken systemd service links lead to confusing noise at boot)

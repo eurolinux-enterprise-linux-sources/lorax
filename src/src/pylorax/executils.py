@@ -22,6 +22,7 @@
 
 import os, sys
 import subprocess
+import time
 import threading
 
 import logging
@@ -66,7 +67,7 @@ class tee(threading.Thread):
 
 def execWithRedirect(command, argv, stdin = None, stdout = None,
                      stderr = None, root = None, preexec_fn=None, cwd=None,
-                     raise_err=False):
+                     raise_err=False, callback_func=None, callback_args=None):
     """ Run an external program and redirect the output to a file.
         @param command The command to run.
         @param argv A list of arguments.
@@ -112,7 +113,7 @@ def execWithRedirect(command, argv, stdin = None, stdout = None,
     elif stderr is None or not isinstance(stderr, file):
         stderr = sys.stderr.fileno()
 
-    program_log.info("Running... %s" % (" ".join([command] + argv),))
+    program_log.info("Running... %s", " ".join([command] + argv))
 
     #prepare os pipes for feeding tee proceses
     pstdout, pstdin = os.pipe()
@@ -124,9 +125,9 @@ def execWithRedirect(command, argv, stdin = None, stdout = None,
     if root:
         preexec_fn = chroot
         cwd = root
-        program_log.info("chrooting into %s" % (cwd,))
+        program_log.info("chrooting into %s", cwd)
     elif cwd:
-        program_log.info("chdiring into %s" % (cwd,))
+        program_log.info("chdiring into %s", cwd)
 
     try:
         #prepare tee proceses
@@ -143,7 +144,14 @@ def execWithRedirect(command, argv, stdin = None, stdout = None,
                                 preexec_fn=preexec_fn, cwd=cwd,
                                 env=env)
 
-        proc.wait()
+        # Wait for the process to finish, calling callback_func to test for early termination
+        while proc.returncode is None:
+            time.sleep(5)
+            if callback_func and callback_func():
+                proc.terminate()
+                callback_func = None
+            proc.poll()
+
         ret = proc.returncode
 
         #close the input ends of pipes so we get EOF in the tee processes
@@ -223,7 +231,7 @@ def execWithCapture(command, argv, stdin = None, stderr = None, root=None,
     elif stderr is None or not isinstance(stderr, file):
         stderr = sys.stderr.fileno()
 
-    program_log.info("Running... %s" % (" ".join([command] + argv),))
+    program_log.info("Running... %s", " ".join([command] + argv))
 
     env = os.environ.copy()
     env.update({"LC_ALL": "C"})
@@ -231,9 +239,9 @@ def execWithCapture(command, argv, stdin = None, stderr = None, root=None,
     if root:
         preexec_fn = chroot
         cwd = root
-        program_log.info("chrooting into %s" % (cwd,))
+        program_log.info("chrooting into %s", cwd)
     elif cwd:
-        program_log.info("chdiring into %s" % (cwd,))
+        program_log.info("chdiring into %s", cwd)
 
     try:
         proc = subprocess.Popen([command] + argv, stdin=stdin,
@@ -267,9 +275,6 @@ def execWithCapture(command, argv, stdin = None, stderr = None, root=None,
 def execWithCallback(command, argv, stdin = None, stdout = None,
                      stderr = None, echo = True, callback = None,
                      callback_data = None, root = '/'):
-    def chroot():
-        os.chroot(root)
-
     def closefds ():
         stdinclose()
         stdoutclose()
@@ -305,7 +310,7 @@ def execWithCallback(command, argv, stdin = None, stdout = None,
     elif stderr is None or not isinstance(stderr, file):
         stderr = sys.stderr.fileno()
 
-    program_log.info("Running... %s" % (" ".join([command] + argv),))
+    program_log.info("Running... %s", " ".join([command] + argv))
 
     p = os.pipe()
     p_stderr = os.pipe()
@@ -349,7 +354,7 @@ def execWithCallback(command, argv, stdin = None, stdout = None,
             if pid != 0:
                 break
         except OSError as e:
-            log.critical("exception from waitpid: %s %s" %(e.errno, e.strerror))
+            log.critical("exception from waitpid: %s %s", e.errno, e.strerror)
 
         if len(s) < 1:
             break
@@ -379,7 +384,7 @@ def execWithCallback(command, argv, stdin = None, stdout = None,
         if not pid:
             (pid, status) = os.waitpid(childpid, 0)
     except OSError as e:
-        log.critical("exception from waitpid: %s %s" %(e.errno, e.strerror))
+        log.critical("exception from waitpid: %s %s", e.errno, e.strerror)
 
     closefds()
 

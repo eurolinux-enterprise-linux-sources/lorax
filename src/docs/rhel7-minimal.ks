@@ -32,6 +32,7 @@ zerombr
 # Partition clearing information
 clearpart --all
 # Disk partitioning information
+reqpart
 part / --fstype="ext4" --size=4000
 part swap --size=1000
 
@@ -56,6 +57,7 @@ syslinux
 
 # Boot on 32bit UEFI
 shim-ia32
+grub2-efi-ia32
 
 # NOTE: To build a bootable UEFI disk image livemedia-creator needs to be
 #       run on a UEFI system or virt.

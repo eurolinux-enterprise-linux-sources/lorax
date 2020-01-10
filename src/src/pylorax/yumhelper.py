@@ -21,9 +21,9 @@
 
 import logging
 logger = logging.getLogger("pylorax.yumhelper")
-import sys, os, re
+import re
 import yum, yum.callbacks, yum.rpmtrans
-import output
+import pylorax.output as output
 
 __all__ = ['LoraxDownloadCallback', 'LoraxTransactionCallback',
            'LoraxRpmCallback']
@@ -34,7 +34,7 @@ class LoraxDownloadCallback(yum.callbacks.DownloadBaseCallback):
         yum.callbacks.DownloadBaseCallback.__init__(self)
         self.output = output.LoraxOutput()
 
-        pattern = "\((?P<pkgno>\d+)/(?P<total>\d+)\):\s+(?P<pkgname>.*)"
+        pattern = r"\((?P<pkgno>\d+)/(?P<total>\d+)\):\s+(?P<pkgname>.*)"
         self.pattern = re.compile(pattern)
 
     def updateProgress(self, name, frac, fread, ftime):
@@ -115,7 +115,7 @@ class LoraxRpmCallback(yum.rpmtrans.RPMBaseCallback):
 
     def filelog(self, package, action):
         if self.fileaction.get(action) == "Installed":
-            logger.debug("{0} installed successfully".format(package))
+            logger.debug("%s installed successfully", package)
 
     def errorlog(self, msg):
         logger.warning("RPM transaction error: %s", msg)

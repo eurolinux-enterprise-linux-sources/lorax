@@ -35,6 +35,7 @@ zerombr
 # Partition clearing information
 clearpart --all
 # Disk partitioning information
+reqpart
 part biosboot --size=1
 part / --fstype="ext4" --size=5000
 part swap --size=1000
@@ -369,4 +370,5 @@ syslinux
 
 # This package is needed to boot the iso on UEFI
 grub2-efi-*-cdboot
+grub2-efi-ia32
 %end

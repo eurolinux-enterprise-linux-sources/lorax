@@ -28,9 +28,9 @@ from os.path import basename, isdir
 from subprocess import CalledProcessError
 import shutil
 
-from sysutils import joinpaths, cpfile, mvfile, replace, remove
-from yumhelper import * # Lorax*Callback classes
-from base import DataHolder
+from pylorax.sysutils import joinpaths, cpfile, mvfile, replace, remove
+from pylorax import yumhelper
+from pylorax.base import DataHolder
 from pylorax.executils import runcmd, runcmd_output
 from pylorax.imgutils import mkcpio
 
@@ -40,10 +40,13 @@ import sys, traceback
 import struct
 
 class LoraxTemplate(object):
-    def __init__(self, directories=["/usr/share/lorax"]):
+    def __init__(self, directories=None):
+        if directories is None:
+            directories = ["/usr/share/lorax"]
         # we have to add ["/"] to the template lookup directories or the
         # file includes won't work properly for absolute paths
         self.directories = ["/"] + directories
+        self.lines = []
 
     def parse(self, template_file, variables):
         lookup = TemplateLookup(directories=self.directories)
@@ -146,13 +149,16 @@ class LoraxTemplateRunner(object):
 
     * Commands should raise exceptions for errors - don't use sys.exit()
     '''
-    def __init__(self, inroot, outroot, yum=None, fatalerrors=True,
-                                        templatedir=None, defaults={}):
+    def __init__(self, inroot, outroot, yum_obj=None, fatalerrors=True,
+                                        templatedir=None, defaults=None):
+        if defaults is None:
+            defaults = {}
         self.inroot = inroot
         self.outroot = outroot
-        self.yum = yum
+        self.yum = yum_obj
         self.fatalerrors = fatalerrors
         self.templatedir = templatedir or "/usr/share/lorax"
+        self.templatefile = None
         # some builtin methods
         self.builtins = DataHolder(exists=lambda p: rexists(p, root=inroot),
                                    glob=lambda g: list(rglob(g, root=inroot)))
@@ -175,7 +181,7 @@ class LoraxTemplateRunner(object):
     def run(self, templatefile, **variables):
         for k,v in self.defaults.items() + self.builtins.items():
             variables.setdefault(k,v)
-        logger.debug("executing {0} with variables={1}".format(templatefile, variables))
+        logger.debug("executing %s with variables=%s", templatefile, variables)
         self.templatefile = templatefile
         t = LoraxTemplate(directories=[self.templatedir])
         commands = t.parse(templatefile, variables)
@@ -212,8 +218,8 @@ class LoraxTemplateRunner(object):
                 # log the "ErrorType: this is what happened" line
                 logger.error("  " + exclines[-1].strip())
                 # and log the entire traceback to the debug log
-                for line in ''.join(exclines).splitlines():
-                    logger.debug("  " + line)
+                for l in ''.join(exclines).splitlines():
+                    logger.debug("  " + l)
                 if self.fatalerrors:
                     raise
 
@@ -453,9 +459,9 @@ class LoraxTemplateRunner(object):
             cmd = cmd[1:]
 
         try:
-            output = runcmd_output(cmd, cwd=cwd)
-            if output:
-                logger.debug('command output:\n%s', output)
+            _output = runcmd_output(cmd, cwd=cwd)
+            if _output:
+                logger.debug('command output:\n%s', _output)
             logger.debug("command finished successfully")
         except CalledProcessError as e:
             if e.output:
@@ -508,15 +514,20 @@ class LoraxTemplateRunner(object):
           commands.
         '''
         self.yum.buildTransaction()
-        self.yum.repos.setProgressBar(LoraxDownloadCallback())
-        self.yum.processTransaction(callback=LoraxTransactionCallback(),
-                                    rpmDisplay=LoraxRpmCallback())
+        self.yum.repos.setProgressBar(yumhelper.LoraxDownloadCallback())
+        self.yum.processTransaction(callback=yumhelper.LoraxTransactionCallback(),
+                                    rpmDisplay=yumhelper.LoraxRpmCallback())
 
         # verify if all packages that were supposed to be installed,
         # are really installed
         errs = [t.po for t in self.yum.tsInfo if not self.yum.rpmdb.contains(po=t.po)]
         for po in errs:
             logger.error("package '%s' was not installed", po)
+
+        # Write the manifest of installed files to /root/lorax-packages.log
+        with open(self._out("root/lorax-packages.log"), "w") as f:
+            for t in sorted(self.yum.tsInfo):
+                f.write("%s\n" % t.po)
 
         self.yum.closeRpmDB()
 
@@ -548,15 +559,15 @@ class LoraxTemplateRunner(object):
                 logger.debug("removefrom %s %s: no files matched!", pkg, g)
         # are we removing the matches, or keeping only the matches?
         if keepmatches:
-            remove = filelist.difference(matches)
+            files_to_remove = filelist.difference(matches)
         else:
-            remove = matches
+            files_to_remove = matches
         # remove the files
-        if remove:
+        if files_to_remove:
             logger.debug("%s: removed %i/%i files, %ikb/%ikb", cmd,
-                             len(remove), len(filelist),
-                             self._getsize(*remove)/1024, self._getsize(*filelist)/1024)
-            self.remove(*remove)
+                             len(files_to_remove), len(filelist),
+                             self._getsize(*files_to_remove)/1024, self._getsize(*filelist)/1024)
+            self.remove(*files_to_remove)
         else:
             logger.debug("removefrom %s: no files to remove!", cmd)
 
@@ -642,11 +653,13 @@ class LoraxTemplateRunner(object):
             logger.debug("systemctl: no units given for %s, ignoring", cmd)
             return
         self.mkdir("/run/systemd/system") # XXX workaround for systemctl bug
-        systemctl = ('systemctl', '--root', self.outroot, '--no-reload',
-                     '--quiet', cmd)
+        systemctl = ['systemctl', '--root', self.outroot, '--no-reload',
+                     cmd]
+        # When a unit doesn't exist systemd aborts the command. Run them one at a time.
         # XXX for some reason 'systemctl enable/disable' always returns 1
-        try:
-            cmd = systemctl + units
-            runcmd(cmd)
-        except CalledProcessError:
-            pass
+        for unit in units:
+            try:
+                cmd = systemctl + [unit]
+                runcmd(cmd)
+            except CalledProcessError:
+                pass
