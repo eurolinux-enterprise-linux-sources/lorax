@@ -3,8 +3,8 @@ sshpw --username=root --plaintext randOmStrinGhERE
 # Firewall configuration
 firewall --enabled --service=mdns
 # Use network installation
-url --url=http://repo/rhel7.4/Server/os
-repo --name=optional --baseurl=http://repo/rhel7.4/Server/optional/os
+url --url=http://repo/rhel7.0/Server/os
+repo --name=optional --baseurl=http://repo/rhel7.0/Server/optional/os
 
 # X Window System configuration information
 xconfig  --startxonboot
@@ -36,7 +36,7 @@ zerombr
 clearpart --all
 # Disk partitioning information
 part biosboot --size=1
-part / --fstype="ext4" --size=5000
+part / --fstype="ext4" --size=4000
 part swap --size=1000
 
 %post
@@ -312,6 +312,16 @@ touch /var/lib/readahead/early.sorted
 rm /var/lib/systemd/random-seed
 %end
 
+%post --nochroot
+cp $INSTALL_ROOT/usr/share/doc/*-release-*/GPL $LIVE_ROOT/GPL
+
+# only works on x86, x86_64
+if [ "$(uname -i)" = "i386" -o "$(uname -i)" = "x86_64" ]; then
+  if [ ! -d $LIVE_ROOT/LiveOS ]; then mkdir -p $LIVE_ROOT/LiveOS ; fi
+  cp /usr/bin/livecd-iso-to-disk $LIVE_ROOT/LiveOS
+fi
+%end
+
 %post
 cat >> /etc/rc.d/init.d/livesys << EOF
 # disable screensaver locking
@@ -351,10 +361,6 @@ cat /dev/null > /etc/fstab
 %end
 
 %packages
-# Packages needed by anaconda, but not directly required.
-# Includes all of the grub2 and shim packages needed, except
-# for the grub2-efi-*-cdboot package
-@anaconda-tools --optional
 @core
 @fonts
 @x11
@@ -364,10 +370,9 @@ anaconda
 isomd5sum
 kernel
 memtest86+
+grub2-efi
+grub2
+shim
 syslinux
 -dracut-config-rescue
-
-# This package is needed to boot the iso on UEFI
-grub2-efi-*-cdboot
-grub2-efi-ia32
 %end

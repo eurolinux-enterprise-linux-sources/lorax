@@ -49,14 +49,6 @@ from treeinfo import TreeInfo
 from discinfo import DiscInfo
 from executils import runcmd, runcmd_output
 
-# get lorax version
-try:
-    import pylorax.version
-except ImportError:
-    vernum = "devel"
-else:
-    vernum = pylorax.version.num
-
 # List of drivers to remove on ppc64 arch to keep initrd < 32MiB
 REMOVE_PPC64_DRIVERS = "floppy scsi_debug nouveau radeon cirrus mgag200"
 REMOVE_PPC64_MODULES = "drm plymouth"
@@ -151,7 +143,6 @@ class Lorax(BaseLoraxClass):
     def run(self, ybo, product, version, release, variant="", bugurl="",
             isfinal=False, workdir=None, outputdir=None, buildarch=None, volid=None,
             domacboot=False, doupgrade=True, remove_temp=False,
-            installpkgs=None,
             size=2,
             add_templates=None,
             add_template_vars=None,
@@ -161,7 +152,13 @@ class Lorax(BaseLoraxClass):
 
         assert self._configured
 
-        installpkgs = installpkgs or []
+        # get lorax version
+        try:
+            import pylorax.version
+        except ImportError:
+            vernum = "devel"
+        else:
+            vernum = pylorax.version.num
 
         if domacboot:
             try:
@@ -250,7 +247,6 @@ class Lorax(BaseLoraxClass):
         # NOTE: rb.root = ybo.conf.installroot (== self.inroot)
         rb = RuntimeBuilder(product=self.product, arch=self.arch,
                             yum=ybo, templatedir=templatedir,
-                            installpkgs=installpkgs,
                             add_templates=add_templates,
                             add_template_vars=add_template_vars)
 
@@ -311,7 +307,7 @@ class Lorax(BaseLoraxClass):
                                   workdir=self.workdir)
 
         logger.info("rebuilding initramfs images")
-        dracut_args = ["--xz", "--install", "/.buildstamp", "--no-early-microcode", "--add", "fips"]
+        dracut_args = ["--xz", "--install", "/.buildstamp", "--no-early-microcode"]
         anaconda_args = dracut_args + ["--add", "anaconda pollcdrom"]
 
         # ppc64 cannot boot an initrd > 32MiB so remove some drivers

@@ -26,7 +26,6 @@ logger = logging.getLogger("pylorax.ltmpl")
 import os, re, glob, shlex, fnmatch
 from os.path import basename, isdir
 from subprocess import CalledProcessError
-import shutil
 
 from sysutils import joinpaths, cpfile, mvfile, replace, remove
 from yumhelper import * # Lorax*Callback classes
@@ -232,10 +231,7 @@ class LoraxTemplateRunner(object):
             install /usr/share/myconfig/grub.conf.in /boot/grub.conf
         '''
         for src in rglob(self._in(srcglob), fatal=True):
-            try:
-                cpfile(src, self._out(dest))
-            except shutil.Error as e:
-                logger.error(e)
+            cpfile(src, self._out(dest))
 
     def installimg(self, srcdir, destfile):
         '''
@@ -366,10 +362,7 @@ class LoraxTemplateRunner(object):
           If DEST doesn't exist, SRC will be copied to a file with
           that name, if the path leading to it exists.
         '''
-        try:
-            cpfile(self._out(src), self._out(dest))
-        except shutil.Error as e:
-            logger.error(e)
+        cpfile(self._out(src), self._out(dest))
 
     def move(self, src, dest):
         '''
@@ -518,11 +511,6 @@ class LoraxTemplateRunner(object):
         for po in errs:
             logger.error("package '%s' was not installed", po)
 
-        # Write the manifest of installed files to /root/lorax-packages.log
-        with open(self._out("root/lorax-packages.log"), "w") as f:
-            for t in sorted(self.yum.tsInfo):
-                f.write("%s\n" % t.po)
-
         self.yum.closeRpmDB()
 
     def removefrom(self, pkg, *globs):
@@ -647,13 +635,11 @@ class LoraxTemplateRunner(object):
             logger.debug("systemctl: no units given for %s, ignoring", cmd)
             return
         self.mkdir("/run/systemd/system") # XXX workaround for systemctl bug
-        systemctl = ['systemctl', '--root', self.outroot, '--no-reload',
-                     cmd]
-        # When a unit doesn't exist systemd aborts the command. Run them one at a time.
+        systemctl = ('systemctl', '--root', self.outroot, '--no-reload',
+                     '--quiet', cmd)
         # XXX for some reason 'systemctl enable/disable' always returns 1
-        for unit in units:
-            try:
-                cmd = systemctl + [unit]
-                runcmd(cmd)
-            except CalledProcessError:
-                pass
+        try:
+            cmd = systemctl + units
+            runcmd(cmd)
+        except CalledProcessError:
+            pass
