@@ -33,21 +33,21 @@ import locale
 from subprocess import CalledProcessError
 import selinux
 
-from pylorax.base import BaseLoraxClass, DataHolder
-import pylorax.output as output
+from base import BaseLoraxClass, DataHolder
+import output
 
 import yum
-import pylorax.ltmpl as ltmpl
+import ltmpl
 
-import pylorax.imgutils as imgutils
-from pylorax.sysutils import joinpaths, linktree, remove
+import imgutils
+from sysutils import *
 from rpmUtils.arch import getBaseArch
 
-from pylorax.treebuilder import RuntimeBuilder, TreeBuilder
-from pylorax.buildstamp import BuildStamp
-from pylorax.treeinfo import TreeInfo
-from pylorax.discinfo import DiscInfo
-from pylorax.executils import runcmd, runcmd_output
+from treebuilder import RuntimeBuilder, TreeBuilder
+from buildstamp import BuildStamp
+from treeinfo import TreeInfo
+from discinfo import DiscInfo
+from executils import runcmd, runcmd_output
 
 # get lorax version
 try:
@@ -56,8 +56,6 @@ except ImportError:
     vernum = "devel"
 else:
     vernum = pylorax.version.num
-
-DRACUT_DEFAULT = ["--xz", "--install", "/.buildstamp", "--no-early-microcode", "--add", "fips"]
 
 # List of drivers to remove on ppc64 arch to keep initrd < 32MiB
 REMOVE_PPC64_DRIVERS = "floppy scsi_debug nouveau radeon cirrus mgag200"
@@ -70,7 +68,7 @@ class ArchData(DataHolder):
                     arm="arm", armhfp="arm")
 
     def __init__(self, buildarch):
-        DataHolder.__init__(self, buildarch=buildarch)
+        self.buildarch = buildarch
         self.basearch = getBaseArch(buildarch)
         self.libdir = "lib64" if self.basearch in self.lib64_arches else "lib"
         self.bcj = self.bcj_arch.get(self.basearch)
@@ -80,13 +78,6 @@ class Lorax(BaseLoraxClass):
     def __init__(self):
         BaseLoraxClass.__init__(self)
         self._configured = False
-        self.conf = None
-        self.outputdir = None
-        self.workdir = None
-        self.inroot = None
-        self.arch = None
-        self.product = None
-        self.debug = False
 
         # set locale to C
         locale.setlocale(locale.LC_ALL, 'C')
@@ -143,7 +134,7 @@ class Lorax(BaseLoraxClass):
 
         # remove some environmental variables that can cause problems with package scripts
         env_remove = ('DISPLAY', 'DBUS_SESSION_BUS_ADDRESS')
-        _ = [os.environ.pop(k) for k in env_remove if k in os.environ]
+        [os.environ.pop(k) for k in env_remove if k in os.environ]
 
         self._configured = True
 
@@ -166,8 +157,7 @@ class Lorax(BaseLoraxClass):
             add_template_vars=None,
             add_arch_templates=None,
             add_arch_template_vars=None,
-            template_tempdir=None,
-            user_dracut_args=None):
+            template_tempdir=None):
 
         assert self._configured
 
@@ -193,15 +183,15 @@ class Lorax(BaseLoraxClass):
         self.init_stream_logging()
         self.init_file_logging(logdir)
 
-        logger.debug("version is %s", vernum)
-        logger.debug("using work directory %s", self.workdir)
-        logger.debug("using log directory %s", logdir)
+        logger.debug("version is {0}".format(vernum))
+        logger.debug("using work directory {0.workdir}".format(self))
+        logger.debug("using log directory {0}".format(logdir))
 
         # set up output directory
         self.outputdir = outputdir or tempfile.mkdtemp(prefix="pylorax.out.")
         if not os.path.isdir(self.outputdir):
             os.makedirs(self.outputdir)
-        logger.debug("using output directory %s", self.outputdir)
+        logger.debug("using output directory {0.outputdir}".format(self))
 
         # do we have root privileges?
         logger.info("checking for root privileges")
@@ -231,7 +221,7 @@ class Lorax(BaseLoraxClass):
             logger.critical("no yum base object")
             sys.exit(1)
         self.inroot = ybo.conf.installroot
-        logger.debug("using install root: %s", self.inroot)
+        logger.debug("using install root: {0}".format(self.inroot))
 
         if not buildarch:
             buildarch = get_buildarch(ybo)
@@ -245,12 +235,12 @@ class Lorax(BaseLoraxClass):
         product = DataHolder(name=product, version=version, release=release,
                              variant=variant, bugurl=bugurl, isfinal=isfinal)
         self.product = product
-        logger.debug("product data: %s", product)
+        logger.debug("product data: %s" % product)
 
         # NOTE: if you change isolabel, you need to change pungi to match, or
         # the pungi images won't boot.
-        isolabel = volid or "%s %s %s" % (self.product.name, self.product.version,
-                                          self.arch.basearch)
+        isolabel = volid or "{0.name} {0.version} {1.basearch}".format(self.product,
+                                                                       self.arch)
 
         if len(isolabel) > 32:
             logger.fatal("the volume id cannot be longer than 32 characters")
@@ -321,13 +311,7 @@ class Lorax(BaseLoraxClass):
                                   workdir=self.workdir)
 
         logger.info("rebuilding initramfs images")
-        if not user_dracut_args:
-            dracut_args = DRACUT_DEFAULT
-        else:
-            dracut_args = []
-            for arg in user_dracut_args:
-                dracut_args += arg.split(" ", 1)
-
+        dracut_args = ["--xz", "--install", "/.buildstamp", "--no-early-microcode", "--add", "fips"]
         anaconda_args = dracut_args + ["--add", "anaconda pollcdrom"]
 
         # ppc64 cannot boot an initrd > 32MiB so remove some drivers
@@ -338,8 +322,6 @@ class Lorax(BaseLoraxClass):
             # upgrade.img
             anaconda_args.extend(["--omit", REMOVE_PPC64_MODULES])
 
-        logger.info("dracut args = %s", dracut_args)
-        logger.info("anaconda args = %s", anaconda_args)
         treebuilder.rebuild_initrds(add_args=anaconda_args)
 
         if doupgrade:

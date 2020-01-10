@@ -22,7 +22,7 @@
 import sys
 import re
 
-import pylorax.decorators as decorators
+import decorators
 
 
 # output levels
@@ -87,44 +87,44 @@ class LinuxTerminalOutput(object):
         if self._indent_level > 0:
             self._indent_level -= 1
 
-    def write(self, s, fp=sys.stdout):
+    def write(self, s, file=sys.stdout):
         if self._colors:
             s = self.__format(s)
         else:
             s = self.__raw(s)
 
-        fp.write(s)
-        fp.flush()
+        file.write(s)
+        file.flush()
 
-    def writeline(self, s, fp=sys.stdout):
+    def writeline(self, s, file=sys.stdout):
         s = "{0}{1}\n".format("    " * self._indent_level, s)
-        self.write(s, fp=fp)
+        self.write(s, file=file)
 
-    def critical(self, s, fp=sys.stdout):
+    def critical(self, s, file=sys.stdout):
         s = "** critical: {0}".format(s)
         if (self._output_level <= CRITICAL and
             self.__raw(s) not in self._ignored_messages):
-            self.writeline(s, fp=fp)
+            self.writeline(s, file=file)
 
-    def error(self, s, fp=sys.stdout):
+    def error(self, s, file=sys.stdout):
         s = "** error: {0}".format(s)
         if (self._output_level <= ERROR and
             self.__raw(s) not in self._ignored_messages):
-            self.writeline(s, fp=fp)
+            self.writeline(s, file=file)
 
-    def warning(self, s, fp=sys.stdout):
+    def warning(self, s, file=sys.stdout):
         s = "** warning: {0}".format(s)
         if (self._output_level <= WARNING and
             self.__raw(s) not in self._ignored_messages):
-            self.writeline(s, fp=fp)
+            self.writeline(s, file=file)
 
-    def info(self, s, fp=sys.stdout):
+    def info(self, s, file=sys.stdout):
         if self._output_level <= INFO:
-            self.writeline(s, fp=fp)
+            self.writeline(s, file=file)
 
-    def debug(self, s, fp=sys.stdout):
+    def debug(self, s, file=sys.stdout):
         if self._output_level <= DEBUG:
-            self.writeline(s, fp=fp)
+            self.writeline(s, file=file)
 
     def __format(self, s):
         for tag, ccode in TAGS:

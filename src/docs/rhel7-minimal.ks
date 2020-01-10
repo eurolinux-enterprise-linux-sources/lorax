@@ -32,7 +32,6 @@ zerombr
 # Partition clearing information
 clearpart --all
 # Disk partitioning information
-reqpart
 part / --fstype="ext4" --size=4000
 part swap --size=1000
 

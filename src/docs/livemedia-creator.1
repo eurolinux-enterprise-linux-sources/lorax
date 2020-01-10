@@ -1,4 +1,4 @@
-.TH LIVEMEDIA-CREATOR 1 2018\-08\-14
+.TH LIVEMEDIA-CREATOR 1 2013\-07\-26
 .SH NAME
 livemedia-creator \- Create live install media
 
@@ -24,7 +24,6 @@ livemedia-creator [-h]
     [--dracut-arg DRACUT_ARGS] [--title TITLE]
     [--project PROJECT] [--releasever RELEASEVER]
     [--volid VOLID] [--squashfs_args SQUASHFS_ARGS]
-    [--virt-uefi] [--ovmf-path OVMF_PATH]
 
 .SH DESCRIPTION
 livemedia-creator uses Anaconda, kickstart and Lorax to create bootable media
@@ -224,20 +223,10 @@ Passed to --arch command
 \fB\-\-kernel\-args KERNEL_ARGS\fR
 Additional argument to pass to the installation kernel
 
-.TP
-\fB\-\-virt\-uefi\fR
-Boot the virtual machine in UEFI mode. Requires OVMF_CODE.fd and OVMF_VARS.fd
-
-.TP
-\fB\-\-ovmf\-path\fR
-Path to OVMF_CODE.fd and OVMF_VARS.fd. Defaults to /usr/share/OVMF/, the UEFI
-firmware files need to be installed manually, they are not shipped with RHEL.
-
 .SH DRACUT ARGUMENTS:
 .TP
-\fB\-\-dracut-arg='ARG'\fR
-Argument to pass to dracut when rebuilding the initramfs. Pass this once for each argument, single quoting
-the arguments like this: '--xz' NOTE: this overrides the default, so all dracut arguments must be included.
+\fB\-\-dracut\-arg DRACUT_ARGS\fR
+Argument to pass to dracut when rebuilding the initramfs. Pass this once foreach argument. NOTE: this overrides the default.
 
 .SH "SEE ALSO"
 Documentation in /usr/share/docs/lorax/README.livemedia-creator

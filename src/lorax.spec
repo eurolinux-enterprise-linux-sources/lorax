@@ -1,21 +1,16 @@
 %define debug_package %{nil}
 
 Name:           lorax
-Version:        19.7.19
+Version:        19.6.104
 Release:        1%{?dist}
 Summary:        Tool for creating the anaconda install images
 
 Group:          Applications/System
 License:        GPLv2+
-URL:            https://github.com/weldr/lorax
-# To generate Source0 do:
-# git clone https://github.com/weldr/lorax
-# git checkout -b archive-branch lorax-%%{version}-%%{release}
-# tito build --tgz
-Source0:        %{name}-%{version}.tar.gz
+URL:            http://git.fedorahosted.org/git/?p=lorax.git
+Source0:        https://fedorahosted.org/releases/l/o/%{name}/%{name}-%{version}.tar.gz
 
 BuildRequires:  python2-devel
-BuildRequires:  python-sphinx yum python-mako pykickstart
 
 Requires:       GConf2
 Requires:       cpio
@@ -68,7 +63,7 @@ Requires:       openssh
 %endif
 
 # Moved image-minimizer tool to lorax
-Provides:       appliance-tools-minimizer = %{version}-%{release}
+Provides:       appliance-tools-minimizer
 Obsoletes:      appliance-tools-minimizer < 007.7-3
 
 %description
@@ -82,29 +77,16 @@ Anaconda's image install feature.
 %setup -q
 
 %build
-make docs
 
 %install
 rm -rf $RPM_BUILD_ROOT
 make DESTDIR=$RPM_BUILD_ROOT mandir=%{_mandir} install
 
-# Do Not Package lorax-composer or composer-cli files
-rm -rf $RPM_BUILD_ROOT/%{python_sitelib}/pylorax/api
-rm -rf $RPM_BUILD_ROOT/%{python_sitelib}/composer
-rm -rf $RPM_BUILD_ROOT/%{_datadir}/lorax/composer
-rm -f $RPM_BUILD_ROOT/%{_sysconfdir}/lorax/composer.conf
-rm -f $RPM_BUILD_ROOT/%{_sbindir}/lorax-composer
-rm -f $RPM_BUILD_ROOT/%{_bindir}/composer-cli
-rm -f $RPM_BUILD_ROOT/%{_unitdir}/lorax-composer.*
-rm -f $RPM_BUILD_ROOT/%{_tmpfilesdir}/lorax-composer.conf
-
 %files
 %defattr(-,root,root,-)
 %doc COPYING AUTHORS README.livemedia-creator README.product
 %doc docs/*ks
-%doc docs/html
 %{python_sitelib}/pylorax
-%exclude %{python_sitelib}/pylorax/api
 %{python_sitelib}/*.egg-info
 %{_sbindir}/lorax
 %{_sbindir}/mkefiboot
@@ -115,49 +97,9 @@ rm -f $RPM_BUILD_ROOT/%{_tmpfilesdir}/lorax-composer.conf
 %config(noreplace) %{_sysconfdir}/lorax/lorax.conf
 %dir %{_datadir}/lorax
 %{_datadir}/lorax/*
-%exclude %{_datadir}/lorax/composer
 %{_mandir}/man1/*.1*
 
 %changelog
-* Wed Aug 15 2018 Brian C. Lane <bcl@redhat.com> 19.7.19-1
-- Add documentation for --dracut-arg to lorax.1 (bcl)
-  Related: rhbz#1452220
-- Add the dracut options to the lorax help output (bcl)
-  Related: rhbz#1452220
-
-* Thu Jun 21 2018 Brian C. Lane <bcl@redhat.com> 19.7.18-1
-- Add redhat.exec to s390 .treeinfo (bcl)
-  Resolves: rhbz#1593657
-
-* Tue Jun 19 2018 Brian C. Lane <bcl@redhat.com> 19.7.17-1
-- Exclude lorax-composer and composer-cli code from the lorax build (bcl)
-  Resolves: rhbz#1547759
-
-* Fri Jun 15 2018 Brian C. Lane <bcl@redhat.com> 19.7.16-2
-- Fixup the lorax.spec after rebasing on 19.6.105-1 (bcl)
-  Resolves: rhbz#1547759
-
-* Fri Jun 15 2018 Brian C. Lane <bcl@redhat.com> 19.7.16-2
-- Rebase of lorax-composer branch onto 19.6.105-1
-- See https://github.com/weldr/lorax/tree/lorax-composer for individual commits
-  for 19.7.1-1 thru 19.7.16-1
-  Resolves: rhbz#1547759
-
-* Mon Jun 11 2018 Brian C. Lane <bcl@redhat.com> 19.6.105-1
-- Retry losetup if loop_attach fails (bcl)
-  Resolves: rhbz#1589084
-- Add reqpart to example kickstart files (bcl)
-  Resolves: rhbz#1545289
-- Increase default ram used with lmc and virt to 2048 (bcl)
-  Resolves: rhbz#1538747
-- Add --virt-uefi to boot the VM using OVMF (bcl)
-  Resolves: rhbz#1546715
-  Resolves: rhbz#1544805
-- Add --dracut-arg support to lorax (bcl)
-  Resolves: rhbz#1452220
-- livemedia-creator: Search for kernel/initrd under /images/pxeboot (bcl)
-  Resolves: rhbz#1522629
-
 * Wed Jan 24 2018 Brian C. Lane <bcl@redhat.com> 19.6.104-1
 - Replace fedora-gnome-theme with gnome-themes-standard (bcl)
   Resolves: rhbz#1537573
@@ -213,7 +155,7 @@ rm -f $RPM_BUILD_ROOT/%{_tmpfilesdir}/lorax-composer.conf
   Resolves: rhbz#1341280
 - Fix loop_wait (bcl)
   Resolves: rhbz#1462150
-- Document kickstart restrictions on %%include (bcl)
+- Document kickstart restrictions on %include (bcl)
   Resolves: rhbz#1418500
 - Add support for --repo to read yum .repo files directly (bcl)
   Resolves: rhbz#1430479
@@ -1064,7 +1006,7 @@ rm -f $RPM_BUILD_ROOT/%{_tmpfilesdir}/lorax-composer.conf
 - Allow specifying buildarch on the command line (#771382) (mgracik)
 - lorax: Don't touch /etc/mtab in cleanup (bcl)
 - Update TODO and POLICY to reflect the current state of things (wwoods)
-- consider %%ghost files part of the filelists in templates (wwoods)
+- consider %ghost files part of the filelists in templates (wwoods)
 - lorax: Add option to exclude packages (bcl)
 - dracut needs kbd directories (#769932) (bcl)
 - better debug, handle relative output paths (bcl)
@@ -1083,7 +1025,7 @@ rm -f $RPM_BUILD_ROOT/%{_tmpfilesdir}/lorax-composer.conf
 - Changes needed for livecd creation (bcl)
 - dracut has moved to /usr/bin (bcl)
 
-* Fri Oct 21 2011 Will Woods <wwoods@redhat.com> 17.0-1
+* Mon Oct 21 2011 Will Woods <wwoods@redhat.com> 17.0-1
 - Merges the 'treebuilder' branch of lorax
 - images are split into two parts again (initrd.img, LiveOS/squashfs.img)
 - base memory use reduced to ~200M (was ~550M in F15, ~320MB in F16)

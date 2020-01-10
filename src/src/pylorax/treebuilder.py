@@ -21,13 +21,13 @@ import logging
 logger = logging.getLogger("pylorax.treebuilder")
 
 import os, re
-from os.path import basename
+from os.path import basename, isdir
 
-from pylorax.sysutils import joinpaths, remove
+from sysutils import joinpaths, remove
 from shutil import copytree, copy2
-from pylorax.base import DataHolder
-from pylorax.ltmpl import LoraxTemplateRunner
-import pylorax.imgutils as imgutils
+from base import DataHolder
+from ltmpl import LoraxTemplateRunner
+import imgutils
 from pylorax.executils import runcmd, runcmd_output
 
 templatemap = {
@@ -53,10 +53,10 @@ def generate_module_info(moddir, outfile=None):
                'eth':read_module_set("modules.networking")}
 
     modinfo = list()
-    for root, _dirs, files in os.walk(moddir):
+    for root, dirs, files in os.walk(moddir):
         for modtype, modset in modsets.items():
             for mod in modset.intersection(files):  # modules in this dir
-                (name, _ext) = os.path.splitext(mod) # foo.ko -> (foo, .ko)
+                (name, ext) = os.path.splitext(mod) # foo.ko -> (foo, .ko)
                 desc = module_desc(joinpaths(root,mod)) or "%s driver" % name
                 modinfo.append(dict(name=name, type=modtype, desc=desc))
 
@@ -79,7 +79,7 @@ class RuntimeBuilder(object):
                                basearch=arch.basearch, libdir=arch.libdir)
         self.yum = yum
         self._runner = LoraxTemplateRunner(inroot=root, outroot=root,
-                                           yum_obj=yum, templatedir=templatedir)
+                                           yum=yum, templatedir=templatedir)
         self.add_templates = add_templates or []
         self.add_template_vars = add_template_vars or {}
         self._installpkgs = installpkgs or []
@@ -156,9 +156,7 @@ class RuntimeBuilder(object):
             runcmd(["depmod", "-a", "-F", ksyms, "-b", root, kver])
             generate_module_info(moddir+kver, outfile=moddir+"module-info")
 
-    def create_runtime(self, outfile="/var/tmp/squashfs.img", compression="xz", compressargs=None, size=2):
-        if compressargs is None:
-            compressargs = []
+    def create_runtime(self, outfile="/var/tmp/squashfs.img", compression="xz", compressargs=[], size=2):
         # make live rootfs image - must be named "LiveOS/rootfs.img" for dracut
         workdir = joinpaths(os.path.dirname(outfile), "runtime-workdir")
         os.makedirs(joinpaths(workdir, "LiveOS"))
@@ -188,21 +186,18 @@ class TreeBuilder(object):
         self.add_templates = add_templates or []
         self.add_template_vars = add_template_vars or {}
         self.templatedir = templatedir
-        self.treeinfo_data = None
 
     @property
     def kernels(self):
         return findkernels(root=self.vars.inroot)
 
-    def rebuild_initrds(self, add_args=None, backup="", prefix=""):
+    def rebuild_initrds(self, add_args=[], backup="", prefix=""):
         '''Rebuild all the initrds in the tree. If backup is specified, each
         initrd will be renamed with backup as a suffix before rebuilding.
         If backup is empty, the existing initrd files will be overwritten.
         If suffix is specified, the existing initrd is untouched and a new
         image is built with the filename "${prefix}-${kernel.version}.img"
         '''
-        if add_args is None:
-            add_args = []
         dracut = ["dracut", "--nomdadmconf", "--nolvmconf"] + add_args
         if not backup:
             dracut.append("--force")
@@ -243,7 +238,7 @@ class TreeBuilder(object):
         self.implantisomd5()
 
     def implantisomd5(self):
-        for _section, data in self.treeinfo_data.items():
+        for section, data in self.treeinfo_data.items():
             if 'boot.iso' in data:
                 iso = joinpaths(self.vars.outroot, data['boot.iso'])
                 runcmd(["implantisomd5", iso])
@@ -273,7 +268,7 @@ class TreeBuilder(object):
         for hook_script, dracut_path in hooks:
             src = joinpaths(self.dracut_hooks_path, hook_script)
             if not os.path.exists(src):
-                logger.error("Missing lorax dracut hook script %s", src)
+                logger.error("Missing lorax dracut hook script %s" % (src))
                 continue
             dst = joinpaths(self.vars.inroot, "/tmp/", hook_script)
             copy2(src, dst)
@@ -301,13 +296,13 @@ def findkernels(root="/", kdir="boot"):
     for kernel in kernels:
         for f in bootfiles:
             if f.endswith('-'+kernel.version+'.img'):
-                imgtype, _rest = f.split('-',1)
+                imgtype, rest = f.split('-',1)
                 # special backwards-compat case
                 if imgtype == 'initramfs':
                     imgtype = 'initrd'
                 kernel[imgtype] = DataHolder(path=joinpaths(kdir, f))
 
-    logger.debug("kernels=%s", kernels)
+    logger.debug("kernels=%s" % kernels)
     return kernels
 
 # udev whitelist: 'a-zA-Z0-9#+.:=@_-' (see is_whitelisted in libudev-util.c)

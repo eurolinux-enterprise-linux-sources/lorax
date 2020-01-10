@@ -113,7 +113,7 @@ def mkefidisk(efiboot, outfile):
                     outfile.write(infile.read())
             dm_detach(dmdev+"p1")
 
-def main():
+if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Make an EFI boot image from the given directory.")
     parser.add_argument("--debug", action="store_const", const=logging.DEBUG,
         dest="loglevel", default=log.getEffectiveLevel(),
@@ -157,6 +157,3 @@ def main():
         efiboot = tempfile.NamedTemporaryFile(prefix="mkefiboot.").name
         shutil.move(opt.outfile, efiboot)
         mkefidisk(efiboot, opt.outfile)
-
-if __name__ == '__main__':
-    main()

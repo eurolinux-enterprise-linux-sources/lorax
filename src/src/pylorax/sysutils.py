@@ -30,6 +30,7 @@ import pwd
 import grp
 import glob
 import shutil
+import subprocess
 
 from pylorax.executils import runcmd
 
@@ -47,12 +48,12 @@ def touch(fname):
         pass
 
 
-def replace(fname, find, substitute):
+def replace(fname, find, replace):
     fin = fileinput.input(fname, inplace=1)
     pattern = re.compile(find)
 
     for line in fin:
-        line = pattern.sub(substitute, line)
+        line = pattern.sub(replace, line)
         sys.stdout.write(line)
 
     fin.close()

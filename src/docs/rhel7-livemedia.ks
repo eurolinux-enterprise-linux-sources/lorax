@@ -35,7 +35,6 @@ zerombr
 # Partition clearing information
 clearpart --all
 # Disk partitioning information
-reqpart
 part biosboot --size=1
 part / --fstype="ext4" --size=5000
 part swap --size=1000

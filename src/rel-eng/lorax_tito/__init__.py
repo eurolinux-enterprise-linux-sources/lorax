@@ -1,3 +1,3 @@
-from lorax_tito.tagger import LoraxRHELTagger
+from .tagger import LoraxRHELTagger
 
-__all__ = ['LoraxRHELTagger']
+all = [LoraxRHELTagger]
